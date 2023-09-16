@@ -3,10 +3,13 @@ import './App.css'
 import Navbar from './components/navbar'
 import {AiOutlineSearch} from 'react-icons/ai'
 import {AiFillPlusCircle} from 'react-icons/ai'
-import {collection,getDocs} from 'firebase/firestore'
+import {collection, onSnapshot} from 'firebase/firestore'
 import {db} from './config/firebase'
 import ContactCard from './components/ContactCard'
 import Modal from './components/Modal'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 
 function App() {
@@ -14,24 +17,7 @@ function App() {
   const [contact, setContact]=useState(null)
   const [isOpen,setOpen]=useState(false)
   const [isUpdate,setUpdate]=useState(false)
-
-  const getContacts = async ()=>{
-
-    const dbconn = collection(db,'contacts')
-    try {        
-      const contactSnapshot = await getDocs(dbconn) 
-      const contactList = contactSnapshot.docs.map((doc)=>{
-        return {
-          id: doc.id,
-          ...doc.data(),
-        }
-      })
-      setContacts(contactList)
-
-    } catch (error) {
-      console.log(error)
-    }
-  }
+  const [isloading,setLoading]=useState(true)
 
   const onOpen = ()=>{
     setOpen(true)
@@ -44,6 +30,25 @@ function App() {
   }
 
   useEffect(()=>{  
+
+    const getContacts = async ()=>{
+      try {        
+        const contactRef = collection(db,'contacts')
+
+        onSnapshot(contactRef,(snapshot)=>{
+          const contactList = snapshot.docs.map((doc)=>{
+            return {
+              id: doc.id,
+              ...doc.data(),
+            }
+          })
+          setContacts(contactList)
+          setLoading(false)
+        })
+      } catch (error) {
+        console.log(error)
+      }
+    }
     getContacts()
   },[])
 
@@ -53,7 +58,21 @@ function App() {
 
   const searchUser =(e)=>{
     const searchTerm = e.target.value;
-    console.log(searchTerm)
+    const contactRef = collection(db,'contacts')
+    onSnapshot(contactRef,(snapshot)=>{
+      const contactList = snapshot.docs.map((doc)=>{
+        return {
+          id: doc.id,
+          ...doc.data(),
+        }
+      })
+      const searchRecords = contactList.filter((record)=>{
+        return record.name.toLowerCase().includes(searchTerm.toLowerCase())
+      }
+      )
+      setContacts(searchRecords)
+    })  
+  
   }
 
   return (
@@ -74,18 +93,23 @@ function App() {
       </section>
 
       <section className=" flex flex-col gap-y-2">
-        {contacts?.length>0? contacts.map((contact)=>(
-          <ContactCard key={contact.id} setOpen={setOpen} setUpdate={setUpdate} setContact={setContact} getContacts={getContacts} contact={contact}/>
-        )): 
-        <div>
-         Loading....
+        {isloading?   <div className='text-2xl font-medium text-center text-white'>
+                        Loading....
+                      </div>
+        :             
+        contacts?.length>0? contacts.map((contact)=>(
+          <ContactCard key={contact.id} setOpen={setOpen} setUpdate={setUpdate} setContact={setContact} contact={contact}/>
+        ))
+        : 
+        <div className='flex gap-2 text-white text-lg items-center justify-center py-4'>
+          <img src="./images/contact.png" alt="person" />
+          No Contact Found
         </div>
         }
       </section>
-        {
-          isOpen && (<Modal isUpdate={isUpdate} onClose={onClose} contact={contact} getContacts={getContacts} />)
-        }
+        {isOpen && (<Modal isUpdate={isUpdate} onClose={onClose} contact={contact} />)}
     </div>
+    <ToastContainer position="bottom-center"/>
     </>
   )
 }

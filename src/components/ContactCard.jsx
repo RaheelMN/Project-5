@@ -3,13 +3,14 @@ import {FiEdit} from 'react-icons/Fi'
 import {AiFillDelete} from 'react-icons/ai'
 import { deleteDoc, doc } from 'firebase/firestore'
 import { db } from '../config/firebase'
+import { toast } from 'react-toastify'
 
-const ContactCard = ({setOpen,setUpdate,setContact,getContacts,contact}) => {
+const ContactCard = ({setOpen,setUpdate,setContact,contact}) => {
 
   const deleteContact =async(id)=>{
     try {
       await deleteDoc(doc(db,"contacts",id))
-      getContacts()
+      toast.success("Contact deleted.")
 
     } catch (error) {
       console.log(error)
